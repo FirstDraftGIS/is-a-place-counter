@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: python:latest
+    steps:
+      - checkout
+      - run:
+          name: Install Python Dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Create Counter
+          command: python3 create_data.py
+          no_output_timeout: 5h
+      - run:
+          name: Create TSV
+          command: python3 create_tsv.py
+      - run:
+          name: Run Test
+          command: python3 test.py
+      - run:
+          name: Install AWS CLI
+          command: pip install awscli --upgrade
+      - run:
+          name: Upload Pickle to S3
+          command: aws s3 cp /tmp/is_a_place_counter.pickle s3://firstdraftgis/is_a_place_counter.pickle --acl public-read
+      - run:
+          name: Upload TSV to S3
+          command: aws s3 cp /tmp/is_a_place.tsv s3://firstdraftgis/is_a_place.tsv --acl public-read
