@@ -1,5 +1,5 @@
-# isaplace-counter
-Counts of how often common words are places or not in Wikipedia
+# is-a-place-counter
+Counts of how often words are places or not in Wikipedia
 
 # Tab-Separated Values Files
 You can download the counts as a tsv from [here](https://s3.amazonaws.com/firstdraftgis/is_a_place_counter.tsv).  The tsv looks like this:
