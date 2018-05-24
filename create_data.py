@@ -111,6 +111,7 @@ def run():
 
     except Exception as e:
         print("[is-a-place-counter] found an error", e)
+        raise(e)
         
         
 run()
