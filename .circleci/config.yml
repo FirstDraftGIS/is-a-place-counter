@@ -6,8 +6,20 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Update System Packages
+          command: apt-get update
+      - run:
+          name: Install System Packages
+          command: apt-get install -y wget zip
+      - run:
           name: Install Python Dependencies
           command: pip install -r requirements.txt
+      - run:
+          name: Download Pickled Place Titles
+          command: |
+            cd /tmp
+            wget https://s3.amazonaws.com/firstdraftgis/place_titles.pickle.zip
+            unzip place_titles.pickle.zip
       - run:
           name: Create Counter
           command: python3 create_data.py
@@ -21,6 +33,12 @@ jobs:
       - run:
           name: Install AWS CLI
           command: pip install awscli --upgrade
+      - run:
+          name: Zip Training Data
+          command: zip -r /tmp/is_a_place_training_data.tsv.zip /tmp/is_a_place_training_data.tsv
+      - run:
+          name: Upload Training Data to S3
+          command: aws s3 cp /tmp/is_a_place_training_data.tsv.zip s3://firstdraftgis/is_a_place_training_data.tsv.zip --acl public-read
       - run:
           name: Upload Pickle to S3
           command: aws s3 cp /tmp/is_a_place_counter.pickle s3://firstdraftgis/is_a_place_counter.pickle --acl public-read

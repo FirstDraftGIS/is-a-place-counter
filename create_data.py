@@ -1,9 +1,11 @@
 from collections import Counter, defaultdict
-from csv import DictReader
-from pickle import dump
+from csv import DictReader, DictWriter
+import pickle
 from re import findall, split
 from wake import clean_title, download_if_necessary, get_links, get_valid_english_wikipedia_pages, remove_references
 from wake import clean_page_text
+
+from config import path_to_place_titles, path_to_pickled_counter, path_to_tsv, path_to_training_data
 
 def prune_counter(counter):
     pruned = defaultdict(Counter)
@@ -15,17 +17,16 @@ def run():
     
     try:
         
-        url_to_gazetteer = "https://s3.amazonaws.com/firstdraftgis/wikidata-gazetteer.tsv"
-        path_to_gazetteer = download_if_necessary(url_to_gazetteer)
-        print("path_to_gazetteer:", path_to_gazetteer)    
-    
-        place_titles = set()
-        with open(path_to_gazetteer) as f:
-            for line in DictReader(f, delimiter="\t"):
-                enwiki_title = line["enwiki_title"]
-                if enwiki_title: # probably unnecessary, but playing it safe
-                    place_titles.add(enwiki_title)
-        print("created place_titles")
+        delimiter = "\t"
+        fieldnames=["page_id", "page_title", "yes", "no"]
+        with open(path_to_training_data, "w") as f:
+            writer = DictWriter(f, fieldnames=fieldnames, delimiter=delimiter)
+            writer.writeheader()
+
+        # load set of titles for places in wikidata-gazetteer
+        # https://github.com/FirstDraftGIS/wikidata-gazetteer#pickled-set
+        with open(path_to_place_titles, "rb") as f:
+            place_titles = pickle.load(f)
 
         page_count = 0
         
@@ -40,18 +41,23 @@ def run():
             if page_count % 10000 == 0:
                 print("page_count:", page_count)
 
-            page_text = page.find("revision/text").text
+            page_id = page['id']
+            page_title = page["title"]
+            page_text = page["text"]
             #print("page_text:", type(page_text))
             
             places_in_text = set()
+            titles_of_places_in_text = set()
 
             # this accidentally picks up wikilinks inside of tags
             links = get_links(page_text)
 
             #print("links:", type(links))
             for link in links:
-                if link["title"] in place_titles:
-                    places_in_text.add(link["title"])
+                title = link["title"]
+                if title in place_titles:
+                    titles_of_places_in_text.add(title)                    
+                    places_in_text.add(title)
                     places_in_text.add(link["display_text"])
             
             #print("places_in_text:", len(places_in_text))
@@ -70,6 +76,8 @@ def run():
             """            
             token_counter = Counter(split("[{}\n</>\]\[\(\)-=\|\# ']", page_text))
             #print("tokens:", len(tokens))
+            
+            tokens_that_are_probably_not_places = set()
 
             for token, count in token_counter.most_common():
                 """
@@ -81,6 +89,16 @@ def run():
                         counter[token]["yes"] += 1
                     elif all(token not in p for p in places_in_text):
                         counter[token]["no"] += 1
+                        if all(char not in token for char in [";","\n",'"',"'","\r","\t"]):  
+                            tokens_that_are_probably_not_places.add(token)
+
+            with open(path_to_training_data, "a") as f:
+                DictWriter(f, fieldnames=fieldnames, delimiter=delimiter).writerow({
+                    "page_id": page_id,
+                    "page_title": page_title,
+                    "yes": ";".join(titles_of_places_in_text),
+                    "no": ";".join(tokens_that_are_probably_not_places)                    
+                })
 
             if len(counter.keys()) > 1500000:
                 counter = prune_counter(counter)
@@ -88,8 +106,8 @@ def run():
             #if page_count > 1000:
             #    break
 
-        with open("/tmp/is_a_place_counter.pickle", "wb") as f:
-            dump(counter, f)
+        with open(path_to_pickled_counter, "wb") as f:
+            pickle.dump(counter, f)
 
     except Exception as e:
         print("[is-a-place-counter] found an error", e)
