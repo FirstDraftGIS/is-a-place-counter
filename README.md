@@ -31,6 +31,10 @@ counts = counter["Madrid"]
 print("Madrid is referred to as a place " + str(counts["yes"]) + " times")
 ```
 
+# Pickled Frequency Counter
+We also created a dictionary that has the token as the key and the frequency it is a place as the value.
+You can download that [here]((https://s3.amazonaws.com/firstdraftgis/is_a_place_frequency.pickle).
+
 # Useful for Machine Learning
 You can use this data to decide whether a word is meant as a place or not.  Using this data, a machine can learn that "the" is obviously never meant as a place whereas "London" is usually meant as a place, but can be a name on rare occasions.
 

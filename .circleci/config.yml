@@ -28,6 +28,9 @@ jobs:
           name: Create TSV
           command: python3 create_tsv.py
       - run:
+          name: Create Frequency Count
+          command: python3 create_freq.py          
+      - run:
           name: Run Test
           command: python3 test.py
       - run:
@@ -40,8 +43,10 @@ jobs:
           name: Upload Training Data to S3
           command: aws s3 cp /tmp/is_a_place_training_data.tsv.zip s3://firstdraftgis/is_a_place_training_data.tsv.zip --acl public-read
       - run:
-          name: Upload Pickle to S3
-          command: aws s3 cp /tmp/is_a_place_counter.pickle s3://firstdraftgis/is_a_place_counter.pickle --acl public-read
+          name: Upload Pickles to S3
+          command: |
+            aws s3 cp /tmp/is_a_place_counter.pickle s3://firstdraftgis/is_a_place_counter.pickle --acl public-read
+            aws s3 cp /tmp/is_a_place_frequency.pickle s3://firstdraftgis/is_a_place_frequency.pickle --acl public-read
       - run:
           name: Upload TSV to S3
           command: aws s3 cp /tmp/is_a_place.tsv s3://firstdraftgis/is_a_place.tsv --acl public-read
